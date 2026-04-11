@@ -1,3 +1,8 @@
+
+---
+
+### **.gitignore**
+```gitignore
 # Binaries for programs and plugins
 *.exe
 *.exe~
@@ -8,21 +13,28 @@
 # Test binary, built with `go test -c`
 *.test
 
-# Code coverage profiles and other test artifacts
+# Output of the go coverage tool
 *.out
-coverage.*
-*.coverprofile
-profile.cov
 
-# Dependency directories (remove the comment below to include it)
-vendor/
+# Dependency directories
+node_modules/
 
-# Go workspace file
+# Go workspace files
 go.work
 go.work.sum
 
-# env file
+# Build artifacts
+/bin/
+/out/
+
+# Environment variables
 .env
 
-# Editor/IDE
+# IDE/editor settings
 .vscode/
+.idea/
+*.swp
+*~
+
+# Logs
+*.log
