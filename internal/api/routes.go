@@ -1,16 +1,21 @@
 package api
 
 import (
+	"github.com/avaswani-build/fair-winds-api/internal/weather"
 	"github.com/gin-gonic/gin"
 )
 
-func NewRouter() *gin.Engine {
+func NewRouter(client weather.Client) *gin.Engine {
 	router := gin.Default()
-	registerRoutes(router)
+	handler := &Handler{
+		WeatherClient: client,
+	}
+	registerRoutes(router, handler)
 	return router
 }
 
-func registerRoutes(router *gin.Engine) {
+func registerRoutes(router *gin.Engine, h *Handler) {
 	router.GET("/health", Health)
-	router.GET("/summary", Summary)
+	router.GET("/summary-mock", SummaryMock)
+	router.GET("/summary", h.Summary)
 }
