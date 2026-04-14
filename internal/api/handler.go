@@ -6,15 +6,12 @@ import (
 
 	"github.com/avaswani-build/fair-winds-api/internal/domain"
 	"github.com/avaswani-build/fair-winds-api/internal/service"
+	"github.com/avaswani-build/fair-winds-api/internal/weather"
 	"github.com/gin-gonic/gin"
 )
 
-type WeatherClient interface {
-	GetForecast(lat, lng float64) (domain.Forecast, error)
-}
-
 type Handler struct {
-	WeatherClient WeatherClient
+	WeatherClient weather.Client
 }
 
 type SummaryResponse struct {
@@ -71,11 +68,44 @@ func (h *Handler) Summary(c *gin.Context) {
 		return
 	}
 
+	if lng > 180 || lng < -180 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "longitude out of range",
+		})
+		return
+	}
+
+	if lat > 90 || lat < -90 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "latitude out of range",
+		})
+		return
+	}
+
 	forecast, err := h.WeatherClient.GetForecast(lat, lng)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": "failed to fetch forecast",
-		})
+		switch err {
+		case weather.ErrPaymentRequired:
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"error": "Weather service usage limit reached. Please try again later.",
+			})
+		case weather.ErrForbidden:
+			c.JSON(http.StatusBadGateway, gin.H{
+				"error": "Weather service authentication failed.",
+			})
+		case weather.ErrUnprocessableContent:
+			c.JSON(http.StatusBadGateway, gin.H{
+				"error": "Weather service could not process the requested location.",
+			})
+		case weather.ErrServiceUnavailable:
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"error": "Weather service is temporarily unavailable. Please try again later.",
+			})
+		default:
+			c.JSON(http.StatusBadGateway, gin.H{
+				"error": "Unable to retrieve weather data right now.",
+			})
+		}
 		return
 	}
 

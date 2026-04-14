@@ -2,6 +2,7 @@ package weather
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -28,6 +29,14 @@ func NewStormglassClient() *StormglassClient {
 	}
 }
 
+var (
+	ErrPaymentRequired      = errors.New("stormglass api rate limit exceeded")
+	ErrForbidden            = errors.New("stormglass API key missing or incorrect")
+	ErrUnprocessableContent = errors.New("incorrect params for requested endpoint")
+	ErrServiceUnavailable   = errors.New("stormglass internal error")
+	ErrUpstream             = errors.New("stormglass upstream error")
+)
+
 type MockClient struct{}
 
 func (m MockClient) GetForecast(lat, lng float64) (domain.Forecast, error) {
@@ -43,7 +52,6 @@ func (c *StormglassClient) GetForecast(lat, lng float64) (domain.Forecast, error
 	if c.apiKey == "" {
 		return domain.Forecast{}, fmt.Errorf("missing STORMGLASS_API_KEY")
 	}
-
 	url := fmt.Sprintf(
 		"https://api.stormglass.io/v2/weather/point?lat=%f&lng=%f&params=windSpeed,gust,waveHeight,windDirection",
 		lat,
@@ -63,8 +71,18 @@ func (c *StormglassClient) GetForecast(lat, lng float64) (domain.Forecast, error
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return domain.Forecast{}, fmt.Errorf("stormglass returned status %d", resp.StatusCode)
+	switch resp.StatusCode {
+	case http.StatusOK:
+	case http.StatusPaymentRequired:
+		return domain.Forecast{}, ErrPaymentRequired
+	case http.StatusForbidden:
+		return domain.Forecast{}, ErrForbidden
+	case http.StatusUnprocessableEntity:
+		return domain.Forecast{}, ErrUnprocessableContent
+	case http.StatusServiceUnavailable:
+		return domain.Forecast{}, ErrServiceUnavailable
+	default:
+		return domain.Forecast{}, ErrUpstream
 	}
 
 	var sgResp StormglassResponse
