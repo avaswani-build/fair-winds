@@ -58,14 +58,16 @@ function App() {
                 try {
                   const summary = await getSummary(latVal, lngVal);
                   setResult(summary);
-                } catch {
+                } catch (err) {
+                  console.error("Fetch error:", err);
                   setError("Failed to fetch summary");
                 } finally {
                   setLoading(false);
                 }
               },
-              () => {
-                setError("Unable to retrieve location");
+              (err) => {
+                console.error("Geolocation error:", err);
+                setError(`Geolocation error: ${err.message}`);
                 setLoading(false);
               }
             );
